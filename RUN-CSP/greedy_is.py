@@ -5,14 +5,14 @@ import argparse
 
 def greedy(g):
     """
-    Greedy heuristic for Max-IS 
+    Greedy heuristic for Max-IS
     :param g: A networkx graph
     :return: An independent set of nodes
     """
 
     # get neighbours and degree for each node
     neighbours_degrees = [(n, set(nx.neighbors(g, n))) for n in g.nodes()]
-    
+
     mis = set()
     while len(neighbours_degrees) != 0:
         # add node with lowest degree to set
