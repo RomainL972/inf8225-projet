@@ -1,0 +1,13 @@
+[project]
+name = "run-csp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "networkx>=3.6.1",
+    "numpy>=2.4.4",
+    "scipy>=1.17.1",
+    "tensorflow[and-cuda]>=2.21.0",
+    "tqdm>=4.67.3",
+]
