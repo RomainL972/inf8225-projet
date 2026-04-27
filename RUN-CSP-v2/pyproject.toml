@@ -5,8 +5,10 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "ipykernel>=7.2.0",
     "networkx>=3.6.1",
     "numpy>=2.4.4",
+    "ortools>=9.15.6755",
     "scipy>=1.17.1",
     "tensorflow[and-cuda]>=2.21.0",
     "tqdm>=4.67.3",
