@@ -1,0 +1,199 @@
+TensorFlow 2.0 Upgrade Script
+-----------------------------
+Converted 19 files
+Detected 2 issues that require attention
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+File: RUN-CSP/model.py
+--------------------------------------------------------------------------------
+RUN-CSP/model.py:499:15: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+RUN-CSP/model.py:523:8: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+================================================================================
+Detailed log follows:
+
+================================================================================
+================================================================================
+Input tree: 'RUN-CSP'
+================================================================================
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/train_max_2sat.py'
+ outputting to 'RUN-CSP-v2/train_max_2sat.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/evaluate_max_cut_regular.py'
+ outputting to 'RUN-CSP-v2/evaluate_max_cut_regular.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/data_utils.py'
+ outputting to 'RUN-CSP-v2/data_utils.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/train_coloring.py'
+ outputting to 'RUN-CSP-v2/train_coloring.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/model.py'
+ outputting to 'RUN-CSP-v2/model.py'
+--------------------------------------------------------------------------------
+
+87:18: INFO: Added keywords to args of function 'tf.shape'
+145:31: INFO: tf.initializers.zeros requires manual check. Initializers no longer have the dtype argument in the constructor or partition_info argument in the __call__ method.
+The calls have been converted to compat.v1 for safety (even though they may already have been correct).
+145:31: INFO: Renamed 'tf.initializers.zeros' to 'tf.compat.v1.initializers.zeros'
+148:30: INFO: tf.random_normal_initializer requires manual check. Initializers no longer have the dtype argument in the constructor or partition_info argument in the __call__ method.
+The calls have been converted to compat.v1 for safety (even though they may already have been correct).
+148:30: INFO: Renamed 'tf.random_normal_initializer' to 'tf.compat.v1.random_normal_initializer'
+207:23: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+254:22: INFO: tf.zeros_initializer requires manual check. Initializers no longer have the dtype argument in the constructor or partition_info argument in the __call__ method.
+The calls have been converted to compat.v1 for safety (even though they may already have been correct).
+254:22: INFO: Renamed 'tf.zeros_initializer' to 'tf.compat.v1.zeros_initializer'
+278:26: INFO: Renamed 'tf.global_variables_initializer' to 'tf.compat.v1.global_variables_initializer'
+279:25: INFO: Renamed 'tf.local_variables_initializer' to 'tf.compat.v1.local_variables_initializer'
+299:15: INFO: Added keywords to args of function 'tf.reduce_sum'
+305:13: INFO: `name` passed to `name_scope`. Because you may be re-entering an existing scope, it is not safe to convert automatically,  the v2 name_scope does not support re-entering scopes by name.
+
+305:13: INFO: Renamed 'tf.name_scope' to 'tf.compat.v1.name_scope'
+342:35: INFO: Added keywords to args of function 'tf.reduce_sum'
+347:28: INFO: Added keywords to args of function 'tf.reduce_sum'
+366:34: INFO: Added keywords to args of function 'tf.argmax'
+383:26: INFO: Added keywords to args of function 'tf.reduce_sum'
+394:13: INFO: `name` passed to `name_scope`. Because you may be re-entering an existing scope, it is not safe to convert automatically,  the v2 name_scope does not support re-entering scopes by name.
+
+394:13: INFO: Renamed 'tf.name_scope' to 'tf.compat.v1.name_scope'
+499:15: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+523:8: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+572:35: INFO: Added keywords to args of function 'tf.reduce_mean'
+582:23: INFO: Renamed 'tf.count_nonzero' to 'tf.math.count_nonzero'
+589:13: INFO: `name` passed to `name_scope`. Because you may be re-entering an existing scope, it is not safe to convert automatically,  the v2 name_scope does not support re-entering scopes by name.
+
+589:13: INFO: Renamed 'tf.name_scope' to 'tf.compat.v1.name_scope'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/evaluate.py'
+ outputting to 'RUN-CSP-v2/evaluate.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/csp_utils.py'
+ outputting to 'RUN-CSP-v2/csp_utils.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/train_weighted_max_cut.py'
+ outputting to 'RUN-CSP-v2/train_weighted_max_cut.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/evaluate_weighted_max_cut.py'
+ outputting to 'RUN-CSP-v2/evaluate_weighted_max_cut.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/train_max_is.py'
+ outputting to 'RUN-CSP-v2/train_max_is.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/generate_xu_instances.py'
+ outputting to 'RUN-CSP-v2/generate_xu_instances.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/evaluate_max_2sat.py'
+ outputting to 'RUN-CSP-v2/evaluate_max_2sat.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/train.py'
+ outputting to 'RUN-CSP-v2/train.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/train_max_cut.py'
+ outputting to 'RUN-CSP-v2/train_max_cut.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/greedy_is.py'
+ outputting to 'RUN-CSP-v2/greedy_is.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/evaluate_coloring.py'
+ outputting to 'RUN-CSP-v2/evaluate_coloring.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/main.py'
+ outputting to 'RUN-CSP-v2/main.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/evaluate_max_is.py'
+ outputting to 'RUN-CSP-v2/evaluate_max_is.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'RUN-CSP/evaluate_max_cut.py'
+ outputting to 'RUN-CSP-v2/evaluate_max_cut.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
