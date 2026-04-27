@@ -8,21 +8,23 @@ from csp_utils import Constraint_Language, CSP_Instance, max_2sat_language, is_l
 
 
 class Message_Network:
-    """ Message Network that sends messages between variables """
+    """Message Network that sends messages between variables"""
 
-    def __init__(self, out_units, activation='linear'):
+    def __init__(self, out_units, activation="linear"):
         """
         :param out_units: Length of the message vectors. We usually use the variables state size for this.
         :param activation: The activation of each layer.
         """
         self.out_units = out_units
         self.activation = activation
-        
+
         # Output layer for generating both messages
-        self.out_layer = tf.keras.layers.Dense(2 * self.out_units,
-                                               activation=activation,
-                                               use_bias=False,
-                                               kernel_regularizer=tf.keras.regularizers.l2())
+        self.out_layer = tf.keras.layers.Dense(
+            2 * self.out_units,
+            activation=activation,
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(),
+        )
         self.out_norm = tf.keras.layers.BatchNormalization()
 
     def __call__(self, in_left, in_right):
@@ -40,16 +42,16 @@ class Message_Network:
         y = self.out_norm(y)
 
         # split output into two different messages
-        msg_left = y[:, :self.out_units]
-        msg_right = y[:, self.out_units:2 * self.out_units]
+        msg_left = y[:, : self.out_units]
+        msg_right = y[:, self.out_units : 2 * self.out_units]
 
         return msg_left, msg_right
 
 
-class Symmetric_Message_Network():
-    """ Symmetric Version of the Messaging Network """
+class Symmetric_Message_Network:
+    """Symmetric Version of the Messaging Network"""
 
-    def __init__(self, out_units, activation='linear'):
+    def __init__(self, out_units, activation="linear"):
         """
         :param out_units: Length of the message vectors. We usually use the variables state size for this.
         :param activation: The activation of each layer.
@@ -58,10 +60,12 @@ class Symmetric_Message_Network():
         self.activation = activation
 
         # Output layer for generating both messages
-        self.out_layer = tf.keras.layers.Dense(self.out_units,
-                                               activation=activation,
-                                               use_bias=False,
-                                               kernel_regularizer=tf.keras.regularizers.l2())
+        self.out_layer = tf.keras.layers.Dense(
+            self.out_units,
+            activation=activation,
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(),
+        )
         self.out_norm = tf.keras.layers.BatchNormalization()
 
     def __call__(self, in_right, in_left):
@@ -102,7 +106,7 @@ def get_message_function(M):
 
 
 class RUN_CSP_Cell:
-    """ The RNN Cell used by RUN-CSP. Implements the cell of the network as specified for tf.keras.layers.RNN """
+    """The RNN Cell used by RUN-CSP. Implements the cell of the network as specified for tf.keras.layers.RNN"""
 
     def __init__(self, network):
         """
@@ -110,7 +114,11 @@ class RUN_CSP_Cell:
         """
 
         self.network = network
+        self.compute_dtype = tf.float32
+        self.dtype = tf.float32
+        self.variable_dtype = tf.float32
         self.output_units = network.domain_size if network.domain_size > 2 else 1
+        self.output_size = self.output_units
         self.relations = network.language.relation_names
         self.message_networks = network.message_networks
         self.n_variables = network.n_variables
@@ -122,24 +130,30 @@ class RUN_CSP_Cell:
         self.clauses = network.clauses
         self.idx_left = network.idx_left
         self.idx_right = network.idx_right
-        
-        self.degrees = tf.cast(tf.reshape(network.degrees, [self.n_variables, 1]), dtype=tf.float32)
+
+        self.degrees = tf.cast(
+            tf.reshape(network.degrees, [self.n_variables, 1]), dtype=tf.float32
+        )
 
         # Batch normalization layer to normalize recieved messages
         self.normalize = tf.keras.layers.BatchNormalization()
 
         # LSTM Cell to update variable states
-        self.update = tf.keras.layers.LSTMCell(network.state_size,
-                                               use_bias=True,
-                                               bias_regularizer=tf.keras.regularizers.l2(),
-                                               kernel_regularizer=tf.keras.regularizers.l2(),
-                                               recurrent_regularizer=tf.keras.regularizers.l2())
+        self.update = tf.keras.layers.LSTMCell(
+            network.state_size,
+            use_bias=True,
+            bias_regularizer=tf.keras.regularizers.l2(),
+            kernel_regularizer=tf.keras.regularizers.l2(),
+            recurrent_regularizer=tf.keras.regularizers.l2(),
+        )
 
         # Trainable linear reduction to map variable states to logits before softmax/sigmoid
-        self.out_reduction = tf.keras.layers.Dense(self.output_units,
-                                                   activation='linear',
-                                                   use_bias=False,
-                                                   kernel_regularizer=tf.keras.regularizers.l2())
+        self.out_reduction = tf.keras.layers.Dense(
+            self.output_units,
+            activation="linear",
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(),
+        )
 
         # Initializer for long term memory states of the LSTM Cell
         self.long_state_init = tf.compat.v1.initializers.zeros()
@@ -149,11 +163,21 @@ class RUN_CSP_Cell:
 
     def get_initial_state(self, inputs=None, batch_size=None, dtype=None):
         # generate initial states for each variable in the given instance
-        var_states = self.var_state_init([self.n_variables, self.state_size[0]])
-        long_states = self.long_state_init([self.n_variables, self.state_size[1]])
+        out_dtype = dtype if dtype is not None else self.compute_dtype
+        var_states = tf.cast(
+            self.var_state_init([self.n_variables, self.state_size[0]]),
+            dtype=out_dtype,
+        )
+        long_states = tf.cast(
+            self.long_state_init([self.n_variables, self.state_size[1]]),
+            dtype=out_dtype,
+        )
         return var_states, long_states
 
-    def call(self, x, states):
+    def __call__(self, x, states, training=None):
+        return self.call(x, states, training=training)
+
+    def call(self, x, states, training=None):
         """
         :param x: The temporal input of the cell, which we do not use. Required by keras.
         :param states: The tuple with the current state tensors
@@ -167,16 +191,26 @@ class RUN_CSP_Cell:
         variable_input_tensors = []
         for r in self.relations:
             # send variable states to incident clauses
-            clause_in_left = tf.reshape(tf.gather_nd(var_states, self.idx_left[r]), [-1, self.state_size[0]])
-            clause_in_right = tf.reshape(tf.gather_nd(var_states, self.idx_right[r]), [-1, self.state_size[0]])
+            clause_in_left = tf.reshape(
+                tf.gather_nd(var_states, self.idx_left[r]), [-1, self.state_size[0]]
+            )
+            clause_in_right = tf.reshape(
+                tf.gather_nd(var_states, self.idx_right[r]), [-1, self.state_size[0]]
+            )
 
             # call the message network of the current relation to compute messages
             message_network = self.message_networks[r]
             msg_left, msg_right = message_network(clause_in_left, clause_in_right)
-            
+
             # sum up messages for each node
-            variable_in_left = tf.scatter_nd(self.idx_left[r], msg_left, shape=[self.n_variables, self.state_size[0]])
-            variable_in_right = tf.scatter_nd(self.idx_right[r], msg_right, shape=[self.n_variables, self.state_size[0]])
+            variable_in_left = tf.scatter_nd(
+                self.idx_left[r], msg_left, shape=[self.n_variables, self.state_size[0]]
+            )
+            variable_in_right = tf.scatter_nd(
+                self.idx_right[r],
+                msg_right,
+                shape=[self.n_variables, self.state_size[0]],
+            )
             variable_in = variable_in_right + variable_in_left
             variable_input_tensors.append(variable_in)
 
@@ -195,7 +229,7 @@ class RUN_CSP_Cell:
 
 
 class RUN_CSP:
-    """ A Tensorflow implementation of RUN-CSP """
+    """A Tensorflow implementation of RUN-CSP"""
 
     def __init__(self, model_dir, language, state_size=128):
         """
@@ -203,6 +237,8 @@ class RUN_CSP:
         :param language: A Constraint_Language instance that specifies the underlying constraint language
         :param state_size: The length of the variable state vectors
         """
+        tf.compat.v1.disable_eager_execution()
+
         # create session
         self.session = tf.compat.v1.Session()
         self.session.as_default()
@@ -217,10 +253,16 @@ class RUN_CSP:
 
         # get characteristic relation matrices in numpy format and define corresponding tensorflow matrices
         self.relations_matrices = language.relation_matrices
-        self.relation_tensors = {r: tf.constant(M, dtype=tf.float32) for r, M in self.relations_matrices.items()}
+        self.relation_tensors = {
+            r: tf.constant(M, dtype=tf.float32)
+            for r, M in self.relations_matrices.items()
+        }
 
         # construct the message network for each relation
-        self.message_networks = {r: (get_message_function(M))(state_size) for r, M in self.relations_matrices.items()}
+        self.message_networks = {
+            r: (get_message_function(M))(state_size)
+            for r, M in self.relations_matrices.items()
+        }
 
         self.state_size = state_size
 
@@ -231,19 +273,26 @@ class RUN_CSP:
         # placeholder for the number of iterations t_max
         self.iterations = tf.compat.v1.placeholder(dtype=tf.int32)
 
-        """ 
+        """
         Placeholders that store the clauses for each iteration.
         For each relation type r, the clauses of this type are stored as tuples in a tensor of shape (n_r, 2),
-        where n_r is the number of clauses of type r. 
+        where n_r is the number of clauses of type r.
         """
-        self.clauses = {r: tf.compat.v1.placeholder(dtype=tf.int32) for r in self.language.relation_names}
-        
-        """ 
+        self.clauses = {
+            r: tf.compat.v1.placeholder(dtype=tf.int32)
+            for r in self.language.relation_names
+        }
+
+        """
         Split the clause tensors into single column matrices that each contain the left and right variables of each constraint, respectively.
         These are needed for the gather and scatter operations in the messaging process.
         """
-        self.idx_left = {r: tf.reshape(c[:, 0], [-1, 1]) for r, c in self.clauses.items()}
-        self.idx_right = {r: tf.reshape(c[:, 1], [-1, 1]) for r, c in self.clauses.items()}
+        self.idx_left = {
+            r: tf.reshape(c[:, 0], [-1, 1]) for r, c in self.clauses.items()
+        }
+        self.idx_right = {
+            r: tf.reshape(c[:, 1], [-1, 1]) for r, c in self.clauses.items()
+        }
 
         # placeholder for the degrees, number of variables and clauses
         self.degrees = tf.compat.v1.placeholder(dtype=tf.int32)
@@ -257,14 +306,18 @@ class RUN_CSP:
         self.cell = RUN_CSP_Cell(self)
 
         # use keras RNN class for the recurrent neural network
-        self.rnn = tf.keras.layers.RNN(self.cell, return_sequences=True)
+        self.rnn = tf.keras.layers.RNN(self.cell, return_sequences=True, name="rnn")
 
         # build the network
         self.build()
 
         # init writers for summaries
-        self.trainWriter = tf.compat.v1.summary.FileWriter(self.model_dir + '/train', self.session.graph)
-        self.testWriter = tf.compat.v1.summary.FileWriter(self.model_dir + '/test', self.session.graph)
+        self.trainWriter = tf.compat.v1.summary.FileWriter(
+            self.model_dir + "/train", self.session.graph
+        )
+        self.testWriter = tf.compat.v1.summary.FileWriter(
+            self.model_dir + "/test", self.session.graph
+        )
         self.summaries = tf.compat.v1.summary.merge_all()
 
         var = [v for v in tf.compat.v1.local_variables()]
@@ -281,7 +334,7 @@ class RUN_CSP:
             self.save_parameters()
 
     def build(self):
-        """ Builds the Networks Computational Graph """
+        """Builds the Networks Computational Graph"""
 
         # create dummy for x to call network for the number of iterations. This value is not actually used in the network.
         x = self.x_init(shape=([self.n_variables, self.iterations, 1]))
@@ -290,7 +343,9 @@ class RUN_CSP:
         logits = self.rnn(x)
 
         if self.domain_size == 2:
-            self.p = tf.reshape(tf.nn.sigmoid(logits), [self.n_variables, self.iterations, 1])
+            self.p = tf.reshape(
+                tf.nn.sigmoid(logits), [self.n_variables, self.iterations, 1]
+            )
             self.phi = tf.concat([1.0 - self.p, self.p], axis=2)
         else:
             self.phi = tf.nn.softmax(logits, axis=2)
@@ -302,18 +357,22 @@ class RUN_CSP:
 
         # compute mean loss metric and add it to summaries
         self.mean_loss, self.mean_loss_op = tf.compat.v1.metrics.mean(loss)
-        with tf.compat.v1.name_scope('summaries'):
-            tf.compat.v1.summary.scalar('loss', self.mean_loss_op)
+        with tf.compat.v1.name_scope("summaries"):
+            tf.compat.v1.summary.scalar("loss", self.mean_loss_op)
 
         # define global step and define learning rate
         self.global_step = tf.Variable(0, trainable=False)
-        rate = tf.compat.v1.train.exponential_decay(self.learning_rate,
-                                                    self.global_step, decay_steps=self.decay_steps,
-                                                    decay_rate=self.decay_rate, staircase=True)
+        rate = tf.compat.v1.train.exponential_decay(
+            self.learning_rate,
+            self.global_step,
+            decay_steps=self.decay_steps,
+            decay_rate=self.decay_rate,
+            staircase=True,
+        )
 
         # use adam optimizer with default parameters  and gradient clipping for training
         optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=rate)
-        #self.train_op = optimizer.minimize(tf.compat.v1.losses.get_total_loss(), self.global_step)
+        # self.train_op = optimizer.minimize(tf.compat.v1.losses.get_total_loss(), self.global_step)
         gvs = optimizer.compute_gradients(tf.compat.v1.losses.get_total_loss())
         gvs = [(tf.clip_by_norm(grad, 1.0), var) for grad, var in gvs]
         self.train_op = optimizer.apply_gradients(gvs, self.global_step)
@@ -328,7 +387,9 @@ class RUN_CSP:
         """
 
         # reshape phi to combine all iterations for each variable
-        all_phi = tf.reshape(self.phi, [self.n_variables, self.iterations * self.domain_size])
+        all_phi = tf.reshape(
+            self.phi, [self.n_variables, self.iterations * self.domain_size]
+        )
 
         relation_losses = []
         for r, M in self.relation_tensors.items():
@@ -339,8 +400,12 @@ class RUN_CSP:
             phi_right = tf.reshape(phi_right, [-1, self.domain_size])
 
             # compute matrix product for each clause
-            clause_relation_loss = tf.reduce_sum(input_tensor=tf.matmul(phi_left, M) * phi_right, axis=1)
-            clause_relation_loss = tf.reshape(clause_relation_loss, [-1, self.iterations])
+            clause_relation_loss = tf.reduce_sum(
+                input_tensor=tf.matmul(phi_left, M) * phi_right, axis=1
+            )
+            clause_relation_loss = tf.reshape(
+                clause_relation_loss, [-1, self.iterations]
+            )
 
             # compute combined loss of clauses of the current relation
             relation_loss = -tf.math.log(clause_relation_loss)
@@ -353,14 +418,17 @@ class RUN_CSP:
 
         # compute and apply discount factor
         discount = tf.tile(tf.constant([0.95]), [self.iterations])
-        exp = tf.cast(tf.range(self.iterations - 1, tf.constant(-1), tf.constant(-1)), dtype=tf.float32)
+        exp = tf.cast(
+            tf.range(self.iterations - 1, tf.constant(-1), tf.constant(-1)),
+            dtype=tf.float32,
+        )
         factor = tf.pow(discount, exp)
         loss = factor * loss
 
         return loss
 
     def build_predictions(self):
-        """ Constructs the predictions and additional metrics """
+        """Constructs the predictions and additional metrics"""
 
         # compute hard assignment from final iteration
         self.assignment = tf.cast(tf.argmax(input=self.phi, axis=2), dtype=tf.int32)
@@ -380,7 +448,7 @@ class RUN_CSP:
             conflicts = 1.0 - valid
 
             self.edge_conflicts[r] = conflicts
-            n_conflicts = tf.reduce_sum(input_tensor=conflicts[:, self.iterations-1])
+            n_conflicts = tf.reduce_sum(input_tensor=conflicts[:, self.iterations - 1])
             relation_conflicts.append(n_conflicts)
 
         # sum up conflicts across all relations
@@ -388,22 +456,26 @@ class RUN_CSP:
 
         # Add metric for relative number of conflicting clauses
         n_clauses = tf.cast(self.n_clauses, tf.float32)
-        self.conflict_ratio, self.conflict_ratio_op = tf.compat.v1.metrics.mean(self.conflicts / n_clauses)
+        self.conflict_ratio, self.conflict_ratio_op = tf.compat.v1.metrics.mean(
+            self.conflicts / n_clauses
+        )
 
         # Add summaries
-        with tf.compat.v1.name_scope('summaries'):
-            tf.compat.v1.summary.scalar('conflict_ratio', self.conflict_ratio_op)
+        with tf.compat.v1.name_scope("summaries"):
+            tf.compat.v1.summary.scalar("conflict_ratio", self.conflict_ratio_op)
 
     def get_feed_dict(self, instance, iterations):
-        """ Creates a Tensorflow feed dict for a given csp instance """
-        feed_dict = {self.iterations: iterations,
-                     self.n_variables: instance.n_variables,
-                     self.n_clauses: instance.n_clauses,
-                     self.degrees: instance.degrees}
+        """Creates a Tensorflow feed dict for a given csp instance"""
+        feed_dict = {
+            self.iterations: iterations,
+            self.n_variables: instance.n_variables,
+            self.n_clauses: instance.n_clauses,
+            self.degrees: instance.degrees,
+        }
 
         for r in self.language.relation_names:
             feed_dict[self.clauses[r]] = instance.clauses[r]
-            
+
         return feed_dict
 
     def train(self, instances, iterations):
@@ -415,15 +487,20 @@ class RUN_CSP:
         """
         self.session.run(self.rolling_variable_init)
 
-        print('Training...')
+        print("Training...")
         for instance in tqdm(instances):
             feed_dict = self.get_feed_dict(instance, iterations)
-            out = [self.train_op, self.conflict_ratio_op, self.summaries, self.global_step]
+            out = [
+                self.train_op,
+                self.conflict_ratio_op,
+                self.summaries,
+                self.global_step,
+            ]
             res = self.session.run(out, feed_dict=feed_dict)
 
         self.trainWriter.add_summary(res[2], res[3])
 
-        output = {'conflict_ratio': res[1]}
+        output = {"conflict_ratio": res[1]}
         return output
 
     def predict(self, instance, iterations):
@@ -437,14 +514,22 @@ class RUN_CSP:
 
         feed_dict = self.get_feed_dict(instance, iterations)
 
-        out = [self.assignment, self.conflicts, self.conflict_ratio_op, self.phi, self.edge_conflicts]
+        out = [
+            self.assignment,
+            self.conflicts,
+            self.conflict_ratio_op,
+            self.phi,
+            self.edge_conflicts,
+        ]
         res = self.session.run(out, feed_dict=feed_dict)
 
-        output = {'assignment': res[0],
-                  'conflicts': res[1],
-                  'conflict_ratio': res[2],
-                  'phi': res[3],
-                  'edge_conflicts': res[4]}
+        output = {
+            "assignment": res[0],
+            "conflicts": res[1],
+            "conflict_ratio": res[2],
+            "phi": res[3],
+            "edge_conflicts": res[4],
+        }
         return output
 
     def predict_boosted(self, instance, iterations, attempts):
@@ -460,8 +545,11 @@ class RUN_CSP:
         output_dict = self.predict(combined, iterations=iterations)
 
         # soft assignments for all iterations
-        phi = output_dict['phi']
-        phi = np.reshape(phi, (attempts, instance.n_variables, iterations, instance.language.domain_size))
+        phi = output_dict["phi"]
+        phi = np.reshape(
+            phi,
+            (attempts, instance.n_variables, iterations, instance.language.domain_size),
+        )
 
         # compute hard assignments
         assignments = np.argmax(phi, axis=3)
@@ -470,8 +558,10 @@ class RUN_CSP:
         conf = np.zeros([attempts, iterations], np.int64)
         for r in instance.language.relations:
             # get binary encoding of whether or not each constraint has a conflict
-            edge_conf = output_dict['edge_conflicts'][r]
-            edge_conf = np.reshape(edge_conf, [attempts, len(instance.clauses[r]), iterations])
+            edge_conf = output_dict["edge_conflicts"][r]
+            edge_conf = np.reshape(
+                edge_conf, [attempts, len(instance.clauses[r]), iterations]
+            )
             conf += np.int64(np.sum(edge_conf, axis=1))
 
         # select solution with fewest conflicts as final output
@@ -479,15 +569,17 @@ class RUN_CSP:
         best_assignment = assignments[best[0], :, best[1]]
         best_conflicts = conf[best]
         best_conflict_ratio = best_conflicts / instance.n_clauses
-        
-        output = {'assignment': best_assignment,
-                  'conflicts': best_conflicts,
-                  'conflict_ratio': best_conflict_ratio,
-                  'all_assignments': assignments,
-                  'all_conflicts': conf}
+
+        output = {
+            "assignment": best_assignment,
+            "conflicts": best_conflicts,
+            "conflict_ratio": best_conflict_ratio,
+            "all_assignments": assignments,
+            "all_conflicts": conf,
+        }
         return output
-        
-    def save_checkpoint(self, name='best'):
+
+    def save_checkpoint(self, name="best"):
         """
         Save the current graph and summaries in the model directory
         :param name: Name of the checkpoint
@@ -499,7 +591,7 @@ class RUN_CSP:
         path = saver.save(session, path)
         print("Model saved in file: %s" % path)
 
-    def load_checkpoint(self, name='best'):
+    def load_checkpoint(self, name="best"):
         """
         Load a checkpoint from the model directory
         :param name: Name of the checkpoint
@@ -507,20 +599,49 @@ class RUN_CSP:
         path = os.path.join(self.model_dir, f"model_{name}.ckpt")
         session = self.session
         saver = tf.compat.v1.train.Saver()
-        saver.restore(session, path)
+        try:
+            saver.restore(session, path)
+        except tf.errors.NotFoundError:
+            # Keras may rename layer scopes (e.g. rnn -> rnn_1) across versions.
+            # Build a remapped var_list so legacy checkpoints still restore.
+            checkpoint_keys = {k for k, _ in tf.train.list_variables(path)}
+
+            def normalize_key(var_name):
+                key = var_name.split(":")[0]
+
+                if key.startswith("rnn_"):
+                    parts = key.split("/", 1)
+                    if parts[0][4:].isdigit() and len(parts) > 1:
+                        key = "rnn/" + parts[1]
+
+                # Keras 3 may append a second numeric suffix to layer names.
+                key = key.replace(
+                    "/batch_normalization_1_1/", "/batch_normalization_1/"
+                )
+                key = key.replace("/dense_1_1/", "/dense_1/")
+                return key
+
+            remapped = {}
+            for v in tf.compat.v1.global_variables():
+                key = normalize_key(v.name)
+                if key in checkpoint_keys:
+                    remapped[key] = v
+
+            saver = tf.compat.v1.train.Saver(var_list=remapped)
+            saver.restore(session, path)
 
     def has_checkpoint(self):
-        """ Check if network has some checkpoint stored in the model directory """
+        """Check if network has some checkpoint stored in the model directory"""
         return os.path.exists(os.path.join(self.model_dir, "checkpoint"))
 
     def save_parameters(self):
-        """ Saves the constraint language and state size in the model directory """
+        """Saves the constraint language and state size in the model directory"""
 
-        parameters = {'state_size': self.state_size}
-        with open(os.path.join(self.model_dir, "parameters.json"), 'w') as f:
+        parameters = {"state_size": self.state_size}
+        with open(os.path.join(self.model_dir, "parameters.json"), "w") as f:
             json.dump(parameters, f)
 
-        self.language.save(os.path.join(self.model_dir, 'language.json'))
+        self.language.save(os.path.join(self.model_dir, "language.json"))
 
     @staticmethod
     def load(model_dir):
@@ -529,30 +650,37 @@ class RUN_CSP:
         :param model_dir: The directory
         :return: The loaded RUN-CSP Network
         """
-        with open(os.path.join(model_dir, "parameters.json"), 'r') as f:
+        with open(os.path.join(model_dir, "parameters.json"), "r") as f:
             parameters = json.load(f)
 
-        state_size = parameters['state_size']
-        language = Constraint_Language.load(os.path.join(model_dir, 'language.json'))
+        state_size = parameters["state_size"]
+        language = Constraint_Language.load(os.path.join(model_dir, "language.json"))
 
         network = RUN_CSP(model_dir, language, state_size)
         return network
 
 
 class Coloring_Network(RUN_CSP):
-    """ A RUN-CSP instance that performs 3 coloring on graphs """
+    """A RUN-CSP instance that performs 3 coloring on graphs"""
+
     def __init__(self, model_dir, colors=3, state_size=128):
-        super().__init__(model_dir, Constraint_Language.get_coloring_language(colors), state_size=state_size)
+        super().__init__(
+            model_dir,
+            Constraint_Language.get_coloring_language(colors),
+            state_size=state_size,
+        )
 
 
 class Max_2SAT_Network(RUN_CSP):
-    """ A RUN-CSP instance for the Max2Sat problem """
+    """A RUN-CSP instance for the Max2Sat problem"""
+
     def __init__(self, model_dir, state_size=128):
         super().__init__(model_dir, max_2sat_language, state_size=state_size)
 
 
 class Max_IS_Network(RUN_CSP):
-    """ A Modified RUN-CSP instance for the Max Independent Set Problem """
+    """A Modified RUN-CSP instance for the Max Independent Set Problem"""
+
     def __init__(self, model_dir, kappa=1.0, state_size=128):
         self.kappa = kappa
         super().__init__(model_dir, is_language, state_size=state_size)
@@ -565,7 +693,10 @@ class Max_IS_Network(RUN_CSP):
         is_loss = super().build_loss()
 
         discount = tf.tile(tf.constant([0.95]), [self.iterations])
-        exp = tf.cast(tf.range(self.iterations - 1, tf.constant(-1), tf.constant(-1)), dtype=tf.float32)
+        exp = tf.cast(
+            tf.range(self.iterations - 1, tf.constant(-1), tf.constant(-1)),
+            dtype=tf.float32,
+        )
         factor = tf.pow(discount, exp)
 
         # loss that rewards larger sets
@@ -576,34 +707,53 @@ class Max_IS_Network(RUN_CSP):
         return loss
 
     def build_predictions(self):
-        """ Overload prediction function to measure the size of the IS """
+        """Overload prediction function to measure the size of the IS"""
         super().build_predictions()
 
-        self.size_IS = tf.math.count_nonzero(self.assignment[:, self.iterations-1], dtype=tf.float32)
-        self.IS_ratio, self.IS_ratio_op = tf.compat.v1.metrics.mean(self.size_IS / tf.cast(self.n_variables, dtype=tf.float32))
+        self.size_IS = tf.math.count_nonzero(
+            self.assignment[:, self.iterations - 1], dtype=tf.float32
+        )
+        self.IS_ratio, self.IS_ratio_op = tf.compat.v1.metrics.mean(
+            self.size_IS / tf.cast(self.n_variables, dtype=tf.float32)
+        )
 
-        corrected_ratio = (tf.cast(self.size_IS, tf.float32) - self.conflicts) / tf.cast(self.n_variables, tf.float32)
-        self.corrected_ratio, self.corrected_ratio_op = tf.compat.v1.metrics.mean(corrected_ratio)
+        corrected_ratio = (
+            tf.cast(self.size_IS, tf.float32) - self.conflicts
+        ) / tf.cast(self.n_variables, tf.float32)
+        self.corrected_ratio, self.corrected_ratio_op = tf.compat.v1.metrics.mean(
+            corrected_ratio
+        )
 
         # Add summaries
-        with tf.compat.v1.name_scope('summaries'):
-            tf.compat.v1.summary.scalar('is_ratio', self.IS_ratio_op)
+        with tf.compat.v1.name_scope("summaries"):
+            tf.compat.v1.summary.scalar("is_ratio", self.IS_ratio_op)
 
     def train(self, batches, iterations):
-        """ Add Independent Set size to output """
+        """Add Independent Set size to output"""
         self.session.run(self.rolling_variable_init)
 
-        print('Training Network...')
+        print("Training Network...")
         for batch in tqdm(batches):
             feed_dict = self.get_feed_dict(batch, iterations)
-            out = [self.train_op, self.conflict_ratio_op, self.summaries, self.global_step, self.IS_ratio_op, self.corrected_ratio_op]
+            out = [
+                self.train_op,
+                self.conflict_ratio_op,
+                self.summaries,
+                self.global_step,
+                self.IS_ratio_op,
+                self.corrected_ratio_op,
+            ]
             res = self.session.run(out, feed_dict=feed_dict)
 
         self.trainWriter.add_summary(res[2], res[3])
 
-        output = {'conflict_ratio': res[1], 'is_ratio': res[4], 'corrected_ratio': res[5]}
+        output = {
+            "conflict_ratio": res[1],
+            "is_ratio": res[4],
+            "corrected_ratio": res[5],
+        }
         return output
-    
+
     def predict_boosted_and_corrected(self, instance, iterations, attempts):
         """
         Generate predictions with boosted performance by making multiple runs in parallel and using the best result.
@@ -615,32 +765,40 @@ class Max_IS_Network(RUN_CSP):
         :return: The predictions for the run with the least conflicts
         """
         # duplicate instance and generate predictions in parallel
-        output_dict = super().predict_boosted(instance, iterations=iterations, attempts=attempts)
+        output_dict = super().predict_boosted(
+            instance, iterations=iterations, attempts=attempts
+        )
 
-        assignments = output_dict['all_assignments']
+        assignments = output_dict["all_assignments"]
         is_sizes = np.sum(assignments, axis=1)
-        conflicts = output_dict['all_conflicts']
+        conflicts = output_dict["all_conflicts"]
 
         # correct is sizes by removing conflicts
         corrected_sizes = is_sizes - conflicts
         # ignore early assignments with many conflicts
-        corrected_sizes[:, :iterations-10] = 0 * corrected_sizes[:, :iterations-10]
+        corrected_sizes[:, : iterations - 10] = (
+            0 * corrected_sizes[:, : iterations - 10]
+        )
 
         # choose attempt with best corrected IS size
         best_attempt = np.argmax(corrected_sizes)
 
-        best = np.unravel_index(np.argmax(corrected_sizes, axis=None), corrected_sizes.shape)
+        best = np.unravel_index(
+            np.argmax(corrected_sizes, axis=None), corrected_sizes.shape
+        )
         best_assignment = assignments[best[0], :, best[1]]
         best_conflicts = conflicts[best]
         best_conflict_ratio = best_conflicts / instance.n_clauses
         best_size = corrected_sizes[best]
         best_is_ratio = best_size / instance.n_variables
 
-        output = {'assignment': best_assignment,
-                  'conflicts': best_conflicts,
-                  'conflict_ratio': best_conflict_ratio,
-                  'is_ratio': best_is_ratio,
-                  'is_size': best_size}
+        output = {
+            "assignment": best_assignment,
+            "conflicts": best_conflicts,
+            "conflict_ratio": best_conflict_ratio,
+            "is_ratio": best_is_ratio,
+            "is_size": best_size,
+        }
         return output
 
     @staticmethod
