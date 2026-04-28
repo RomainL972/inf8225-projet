@@ -3,6 +3,7 @@ from ortools.sat.python import cp_model
 import argparse
 import data_utils
 from tqdm import tqdm
+import time
 
 
 def solve_with_cp(graph: nx.Graph, n_colors: int) -> bool:
@@ -44,8 +45,13 @@ if __name__ == "__main__":
 
     names, graphs = data_utils.load_graphs(args.data_path, limit=args.n_instances)
 
+    start_time = time.perf_counter()
+
     success_count = 0
     for graph in tqdm(graphs):
         success_count += solve_with_cp(graph, 8)
 
+    end_time = time.perf_counter()
+
     print(f"CP solved {success_count} out of {len(graphs)} problems")
+    print(f"Total time: {end_time - start_time}")

@@ -5,7 +5,16 @@ This project uses a Graph Neural Network (GNN) to solve the register allocation 
 ## Structure
 
 - **llvm-project/** — Fork of LLVM 22.1.4 with a custom `DumpInterferenceGraph` pass that exports register interference graphs in DIMACS format.
-- **RUN-CSP/** — RUN-CSP: a GNN architecture for solving Constraint Satisfaction Problems, used here for graph coloring.
+- **RUN-CSP-v2/** — RUN-CSP: a GNN architecture for solving Constraint Satisfaction Problems, used here for graph coloring.
+
+## Interesting files
+
+- **llvm-project/lib/CodeGen/DumpInterferenceGraph.cpp** — LLVM pass that dumps interference graphs.
+- **RUN-CSP-v2/analysis.ipynb** — Jupyter notebook for analyzing model performance and comparing with greedy and CP baselines.
+- **RUN-CSP-v2/greedy.py** — Greedy graph coloring baseline.
+- **RUN-CSP-v2/cp.py** — CP-SAT graph coloring baseline using OR-Tools.
+- **RUN-CSP-v2/models/RegAlloc** — Trained GNN models for register allocation.
+- **RUN-CSP-v2/saved_graphs/** — Example DIMACS files for training and validation.
 
 ## Setup
 
@@ -51,9 +60,9 @@ e 3 4
 ## Training the GNN
 
 ```bash
-cd RUN-CSP
-pip install -r requirements.txt
-python train_coloring.py -d ../interference_graphs/ --n_colors <k> -e 20 -t 25
+cd RUN-CSP-v2
+uv sync
+uv run train_coloring.py -d ../interference_graphs/ --n_colors <k> -e 20 -t 25
 ```
 
 Where `<k>` is the number of physical registers for the target register class (found in the DIMACS comment line).
